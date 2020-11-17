@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, redirect
 from flask_restplus import Api, Resource
 from flask_cors import CORS
 import pickle
+import os
 
 
 app = Flask(__name__)
@@ -20,6 +21,32 @@ api = Api(app, version='1.0', title='sentiment2emoji API',
 def get():
     return redirect('/predict')
 
+@app.route('/emojify', methods=['POST'])
+def emojify():
+    try:
+        # pre-process
+        x = str(request.form.get('query'))
+        tfidf = load_tfidf.transform([x])
+        prediction = clf.predict(tfidf)
+        if prediction == ['love']:
+            emoji = '😍'
+        if prediction == ['anger']:
+            emoji = '😡'
+        if prediction == ['joy']:
+            emoji = '😊'
+        if prediction == ['sad']:
+            emoji = '☹️'
+        if prediction == ['fear']:
+            emoji = '😳'
+        if prediction == ['surprised']:
+            emoji = '🤭'
+
+        responseBody = f"{{ \"emoji\": \"{emoji}\" }}\n"
+        return responseBody
+    except Exception as e:
+        print(e)
+        errorBody = f"{{ \"error\": \"☠️\" }}\n"
+        return errorBody
 
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
@@ -100,5 +127,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(e)
         clf = None
-
-    app.run(host='0.0.0.0', port=9999, debug=True)
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = os.environ.get("PORT", 8080)
+    debug = os.environ.get("DEBUG", False)
+    app.run(host=host, port=port, debug=debug)
